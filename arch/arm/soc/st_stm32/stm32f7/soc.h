@@ -25,6 +25,13 @@
 
 #include "soc_irq.h"
 
+#ifdef CONFIG_CLOCK_CONTROL_STM32_CUBE
+#include <stm32f7xx_ll_utils.h>
+#include <stm32f7xx_ll_bus.h>
+#include <stm32f7xx_ll_rcc.h>
+#include <stm32f7xx_ll_system.h>
+#endif /* CONFIG_CLOCK_CONTROL_STM32_CUBE */
+
 #endif /* !_ASMLANGUAGE */
 
 #endif /* _STM3274_SOC_H_ */
