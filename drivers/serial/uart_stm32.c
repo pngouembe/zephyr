@@ -295,12 +295,17 @@ static int uart_stm32_init(struct device *dev)
 
 	LL_USART_Enable(UartInstance);
 
-#if !defined(CONFIG_SOC_SERIES_STM32F4X) && !defined(CONFIG_SOC_SERIES_STM32F1X)
+#if !defined(CONFIG_SOC_SERIES_STM32F4X) && \
+	!defined(CONFIG_SOC_SERIES_STM32F7X) && \
+	!defined(CONFIG_SOC_SERIES_STM32F1X)
 	/* Polling USART initialisation */
 	while ((!(LL_USART_IsActiveFlag_TEACK(UartInstance))) ||
 	      (!(LL_USART_IsActiveFlag_REACK(UartInstance))))
 		;
-#endif /* !CONFIG_SOC_SERIES_STM32F4X */
+#endif /* !CONFIG_SOC_SERIES_STM32F4X &&
+		!CONFIG_SOC_SERIES_STM32F7X &&
+		!CONFIG_SOC_SERIES_STM32F1X
+		*/
 
 #ifdef CONFIG_UART_INTERRUPT_DRIVEN
 	config->uconf.irq_config_func(dev);
