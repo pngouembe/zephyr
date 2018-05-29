@@ -243,7 +243,7 @@ DEVICE_AND_API_INIT(pwm_stm32_2, CONFIG_PWM_STM32_2_DEV_NAME,
 #ifdef CONFIG_PWM_STM32_3
 static struct pwm_stm32_data pwm_stm32_dev_data_3 = {
 	/* Default case */
-	.pwm_prescaler = 10000,
+	.pwm_prescaler = 100,
 };
 
 static const struct pwm_stm32_config pwm_stm32_dev_cfg_3 = {
