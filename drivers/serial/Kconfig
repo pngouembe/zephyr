@@ -61,6 +61,13 @@ config UART_DRV_CMD
 
 	  Says no if not sure.
 
+config UART_DMA
+	bool "Enable driver dma API"
+	default n
+	help
+	  This enables the API to support DMA
+	  Says no if not sure.
+
 comment "Serial Drivers"
 
 source "drivers/serial/Kconfig.ns16550"

@@ -28,6 +28,10 @@ extern "C" {
 
 #include <device.h>
 
+#ifdef CONFIG_UART_DMA
+#include <dma.h>
+#endif
+
 #ifdef CONFIG_PCI
 #include <drivers/pci/pci.h>
 #include <drivers/pci/pci_mgr.h>
@@ -168,6 +172,11 @@ struct uart_driver_api {
 
 #ifdef CONFIG_UART_DRV_CMD
 	int (*drv_cmd)(struct device *dev, u32_t cmd, u32_t p);
+#endif
+
+#ifdef CONFIG_UART_DMA
+	int (*dma_read)(struct device *dev, u8_t *buffer, u32_t block_size,
+		dma_callback_t dma_callback);
 #endif
 
 };
@@ -670,6 +679,26 @@ static inline int _impl_uart_drv_cmd(struct device *dev, u32_t cmd, u32_t p)
 }
 
 #endif /* CONFIG_UART_DRV_CMD */
+
+#ifdef CONFIG_UART_DMA
+
+__syscall int uart_dma_read(struct device *dev, u8_t *buffer, u32_t block_size,
+		       dma_callback_t dma_callback);
+
+static inline int _impl_uart_dma_read(struct device *dev, u8_t *buffer, 
+				      u32_t block_size, dma_callback_t dma_callback)
+{
+	const struct uart_driver_api *api =
+		(const struct uart_driver_api *)dev->driver_api;
+
+	if (api->dma_read) {
+		return api->dma_read(dev, buffer, block_size, dma_callback);
+	}
+
+	return -ENOTSUP;
+}
+
+#endif
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,11 @@
 #include <uart.h>
 #include <clock_control.h>
 
+
+#ifdef CONFIG_UART_DMA
+#include <dma.h>
+#endif
+
 #include <linker/sections.h>
 #include <clock_control/stm32_clock_control.h>
 #include "uart_stm32.h"
@@ -222,6 +227,41 @@ static void uart_stm32_isr(void *arg)
 
 #endif /* CONFIG_UART_INTERRUPT_DRIVEN */
 
+#ifdef CONFIG_UART_DMA
+int uart_stm32_dma_read(struct device *dev, u8_t *buffer, u32_t block_size,
+			dma_callback_t dma_callback)
+{
+	USART_TypeDef *UartInstance = UART_STRUCT(dev);
+	struct device* dma_dev;
+
+	dma_dev = device_get_binding("DMA_2");
+	if (!dma_dev) {
+		printk("Could not get DMA device\n");
+		return -1;
+	}
+
+	struct dma_block_config blk_cfg = {
+		.source_address =  (u32_t)&UartInstance->RDR,
+		.dest_address = (u32_t)buffer,
+		.block_size = block_size
+	};
+
+	struct dma_config dma_cfg = {
+		.channel_direction = PERIPHERAL_TO_MEMORY,
+		.source_data_size = 0,
+		.dest_data_size = 0,
+		.source_burst_length = 0,
+		.dest_burst_length = 0,
+		.head_block = &blk_cfg,
+		.dma_callback = dma_callback
+	};
+	LL_USART_EnableDMAReq_RX(UartInstance);
+	dma_config(dma_dev, 2, &dma_cfg);
+	dma_start(dma_dev,2);
+	return 0;
+}
+#endif
+
 static const struct uart_driver_api uart_stm32_driver_api = {
 	.poll_in = uart_stm32_poll_in,
 	.poll_out = uart_stm32_poll_out,
@@ -240,6 +280,7 @@ static const struct uart_driver_api uart_stm32_driver_api = {
 	.irq_is_pending = uart_stm32_irq_is_pending,
 	.irq_update = uart_stm32_irq_update,
 	.irq_callback_set = uart_stm32_irq_callback_set,
+	.dma_read = uart_stm32_dma_read,
 #endif	/* CONFIG_UART_INTERRUPT_DRIVEN */
 };
 

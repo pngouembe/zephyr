@@ -70,3 +70,11 @@ Z_SYSCALL_HANDLER(uart_drv_cmd, dev, cmd, p)
 	return _impl_uart_drv_cmd((struct device *)dev, cmd, p);
 }
 #endif /* CONFIG_UART_DRV_CMD */
+
+#ifdef CONFIG_UART_DMA
+Z_SYSCALL_HANDLER(uart_dma_read, dev, buffer, block_size, dma_callback)
+{
+	
+	return _impl_uart_dma_read((struct device *)dev, (u8_t*)buffer, (u32_t)block_size, (dma_callback_t)dma_callback);
+}
+#endif /* CONFIG_UART_DMA */

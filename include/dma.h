@@ -41,6 +41,8 @@ enum dma_addr_adj {
 	DMA_ADDR_ADJ_NO_CHANGE,
 };
 
+typedef void (*dma_callback_t)(struct device *dev, u32_t channel, int error_code);
+
 /**
  * @brief DMA block configuration structure.
  *
@@ -147,8 +149,7 @@ struct dma_config {
 	u32_t  dest_burst_length :   16;
 	u32_t block_count;
 	struct dma_block_config *head_block;
-	void (*dma_callback)(struct device *dev, u32_t channel,
-			     int error_code);
+	dma_callback_t dma_callback;
 };
 
 /**

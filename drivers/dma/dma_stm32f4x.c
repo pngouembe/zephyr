@@ -547,7 +547,7 @@ static void dma_stm32_1_config(struct dma_stm32_device *ddata)
 	ddata->base = DMA_STM32_1_BASE;
 	ddata->channel_tx = DMA_STM32_1_TX_CHANNEL_ID;
 	ddata->channel_rx = DMA_STM32_1_RX_CHANNEL_ID;
-
+#ifdef CONFIG_SOC_SERIES_STM32F4X
 	IRQ_CONNECT(STM32F4_IRQ_DMA1_STREAM0, DMA_STM32_IRQ_PRI,
 		    dma_stm32_irq_0, DEVICE_GET(dma_stm32_1), 0);
 	irq_enable(STM32F4_IRQ_DMA1_STREAM0);
@@ -579,6 +579,39 @@ static void dma_stm32_1_config(struct dma_stm32_device *ddata)
 	IRQ_CONNECT(STM32F4_IRQ_DMA1_STREAM7, DMA_STM32_IRQ_PRI,
 		    dma_stm32_irq_7, DEVICE_GET(dma_stm32_1), 0);
 	irq_enable(STM32F4_IRQ_DMA1_STREAM7);
+#elif defined(CONFIG_SOC_SERIES_STM32F7X)
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM0, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_0, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM0);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM1, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_1, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM1);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM2, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_2, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM2);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM3, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_3, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM3);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM4, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_4, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM4);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM5, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_5, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM5);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM6, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_6, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM6);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA1_STREAM7, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_7, DEVICE_GET(dma_stm32_1), 0);
+	irq_enable(STM32F7_IRQ_DMA1_STREAM7);
+#endif
 }
 
 static void dma_stm32_2_config(struct dma_stm32_device *ddata)
@@ -588,6 +621,7 @@ static void dma_stm32_2_config(struct dma_stm32_device *ddata)
 	ddata->channel_tx = DMA_STM32_2_TX_CHANNEL_ID;
 	ddata->channel_rx = DMA_STM32_2_RX_CHANNEL_ID;
 
+#ifdef CONFIG_SOC_SERIES_STM32F4X
 	IRQ_CONNECT(STM32F4_IRQ_DMA2_STREAM0, DMA_STM32_IRQ_PRI,
 		    dma_stm32_irq_0, DEVICE_GET(dma_stm32_2), 0);
 	irq_enable(STM32F4_IRQ_DMA2_STREAM0);
@@ -619,4 +653,37 @@ static void dma_stm32_2_config(struct dma_stm32_device *ddata)
 	IRQ_CONNECT(STM32F4_IRQ_DMA2_STREAM7, DMA_STM32_IRQ_PRI,
 		    dma_stm32_irq_7, DEVICE_GET(dma_stm32_2), 0);
 	irq_enable(STM32F4_IRQ_DMA2_STREAM7);
+#elif defined(CONFIG_SOC_SERIES_STM32F7X)
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM0, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_0, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM0);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM1, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_1, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM1);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM2, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_2, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM2);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM3, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_3, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM3);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM4, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_4, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM4);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM5, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_5, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM5);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM6, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_6, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM6);
+
+	IRQ_CONNECT(STM32F7_IRQ_DMA2_STREAM7, DMA_STM32_IRQ_PRI,
+		    dma_stm32_irq_7, DEVICE_GET(dma_stm32_2), 0);
+	irq_enable(STM32F7_IRQ_DMA2_STREAM7);
+#endif
 }
