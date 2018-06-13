@@ -280,8 +280,10 @@ static const struct uart_driver_api uart_stm32_driver_api = {
 	.irq_is_pending = uart_stm32_irq_is_pending,
 	.irq_update = uart_stm32_irq_update,
 	.irq_callback_set = uart_stm32_irq_callback_set,
+#endif /* CONFIG_UART_INTERRUPT_DRIVEN */
+#ifdef CONFIG_UART_DMA
 	.dma_read = uart_stm32_dma_read,
-#endif	/* CONFIG_UART_INTERRUPT_DRIVEN */
+#endif	/* CONFIG_UART_DMA*/
 };
 
 /**

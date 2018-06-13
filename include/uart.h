@@ -28,9 +28,7 @@ extern "C" {
 
 #include <device.h>
 
-#ifdef CONFIG_UART_DMA
 #include <dma.h>
-#endif
 
 #ifdef CONFIG_PCI
 #include <drivers/pci/pci.h>

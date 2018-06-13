@@ -81,10 +81,10 @@ struct device* uart6_dev;
 
 u32_t pwm_period;
 
-u8_t uart_buffer[2];
-
 s16_t speed = 0;
 int reverse_allowed = 1;
+
+struct k_sem speed_sem;
 
 static void get_from_ip_addr(struct coap_packet *cpkt,
 			     struct sockaddr_in6 *from)
@@ -216,8 +216,6 @@ static int resource_put(struct coap_resource *resource,
 
 	if (resource->path == speed_path) {
 		int speed_tmp = 0;
-		u32_t pulse = 0;
-		u32_t speed_abs;
 
 		if (!is_number(payloadfrag->data + offset, len)) {
 			printk("Not a number\n");
@@ -239,22 +237,7 @@ static int resource_put(struct coap_resource *resource,
 		}
 
 		speed = (s16_t)speed_tmp;
-		speed_abs = speed < 0 ? -speed : speed;
-
-		pulse = (pwm_period * (speed_abs * (PULSE_UPPER_BOUND - PULSE_LOWER_BOUND) + PULSE_LOWER_BOUND * 100)) / (100 * 100);
-		printk("period: %d, pulse: %d\n", pwm_period, pulse);
-		pwm_pin_set_cycles(pwm_dev, PWM_CHANNEL_RAIL1, pwm_period, pulse);
-
-		if(speed > 0) {
-			gpio_pin_write(gpio_dev, FW_PIN, 1);
-			gpio_pin_write(gpio_dev, RW_PIN, 0);
-		} else if (speed < 0) {
-			gpio_pin_write(gpio_dev, FW_PIN, 0);
-			gpio_pin_write(gpio_dev, RW_PIN, 1);
-		} else {
-			gpio_pin_write(gpio_dev, FW_PIN, 0);
-			gpio_pin_write(gpio_dev, RW_PIN, 0);
-		}
+		k_sem_give(&speed_sem);
 
 		resp_code = COAP_RESPONSE_CODE_CHANGED;
 
@@ -553,106 +536,18 @@ static void retransmit_request(struct k_work *work)
 	k_delayed_work_submit(&retransmit_work, pending->timeout);
 }
 
-enum lidar_state {WAIT_FOR_MAGIC, READ_INDEX, READ_DATA};
-
-static inline int lidar_read_statemachine(u8_t data_byte, u8_t *data)
+void change_dir(int speed)
 {
-	static u8_t *data_ptr;
-	static u8_t actual_index;
-	int state = WAIT_FOR_MAGIC;
-
-
-	switch (state) {
-		case WAIT_FOR_MAGIC:
-			if(data_byte == 0xFA) {
-				state = READ_INDEX;
-				printk("READ_INDEX\n");
-			}
-		break;
-
-		case READ_INDEX:
-			if (data_byte == actual_index + 0xA0) {
-				data_ptr = data;
-				*data_ptr = actual_index;
-				data_ptr ++;
-				if (++actual_index == 90) {
-					actual_index = 0;
-				}
-				state = READ_DATA;
-				printk("READ_DATA\n");
-			} else {
-				actual_index = 0;
-				state = WAIT_FOR_MAGIC;
-			}
-		break;
-
-		case READ_DATA:
-			*data_ptr = data_byte;
-			data_ptr++;
-			if(data_ptr == data+21) {
-				state = WAIT_FOR_MAGIC;
-				return 1;
-			}
-		break;
+	if(speed > 0) {
+		gpio_pin_write(gpio_dev, FW_PIN, 1);
+		gpio_pin_write(gpio_dev, RW_PIN, 0);
+	} else if (speed < 0) {
+		gpio_pin_write(gpio_dev, FW_PIN, 0);
+		gpio_pin_write(gpio_dev, RW_PIN, 1);
+	} else {
+		gpio_pin_write(gpio_dev, FW_PIN, 0);
+		gpio_pin_write(gpio_dev, RW_PIN, 0);
 	}
-	return 0;
-}
-
-static inline int sync_buffer(u8_t *data, u8_t *buffer, int length)
-{
-	u8_t *buffer_ptr;
-	int ret = 0;
-
-	for (buffer_ptr = buffer; length; length--, buffer_ptr++) {
-		printk("got: %x\n", *buffer_ptr);
-		ret |= lidar_read_statemachine(*buffer_ptr, data);
-	}
-	return ret;
-}
-
-void print_data(u8_t *data) {
-	u8_t index = data[0];
-	u16_t speed = data[1] | (data[2] << 8);
-	u16_t dist_1 = data[3] | (data[4] << 8);
-	u16_t dist_2 = data[7] | (data[8] << 8);
-	u16_t dist_3 = data[11] | (data[12] << 8);
-	u16_t dist_4 = data[15] | (data[16] << 8);
-	printk("%d\n", dist_1);
-	printk("%d\n", dist_2);
-	printk("%d\n", dist_3);
-	printk("%d\n", dist_4);
-	(void) speed;
-	(void) index;
-}
-
-void lidar_parse(struct device *port)
-{
-	static u8_t data[21];
-	u8_t buffer[22];
-	int num_bytes;
-	
-	do {
-		num_bytes = uart_fifo_read(port, buffer, sizeof (buffer));
-		printk("%d bytes\n", num_bytes);
-		if (num_bytes && sync_buffer(data, buffer, num_bytes)) {
-			print_data(data);
-		}
-
-	} while (num_bytes > 0);
-}
-
-void uart6_isr(struct device *port)
-{
-
-	if(uart_irq_rx_ready(port))
-	{
-		lidar_parse(port);
-	}
-}
-
-void uart6_dma_callback(struct device *dev, u32_t channel, int error_code)
-{
-	printk("dma-callback\n");
 }
 
 void main(void)
@@ -686,15 +581,6 @@ void main(void)
 	gpio_pin_write(gpio_dev, FW_PIN, 0);
 	gpio_pin_write(gpio_dev, RW_PIN, 0);
 
-	uart6_dev = device_get_binding("UART_6");
-	if (!uart6_dev) {
-		printk("Could not get UART6 device\n");
-		return;
-	}
-
-	//uart_irq_callback_set(uart6_dev, uart6_isr);
-	//uart_irq_rx_enable(uart6_dev);
-	uart_dma_read(uart6_dev,uart_buffer, sizeof(uart_buffer), uart6_dma_callback);
 
 	if (!join_coap_multicast_group()) {
 		NET_ERR("Could not join CoAP multicast group\n");
@@ -725,4 +611,27 @@ void main(void)
 	struct net_if *iface;
 	iface = net_if_get_default();
 	printk("IP: %s\n", net_sprint_ipv6_addr(net_if_ipv6_get_ll(iface, NET_ADDR_PREFERRED)));
+
+	k_sem_init(&speed_sem, 0, 1);
+
+	while (1) {
+		static s16_t speed_act = 0;
+		u32_t pulse;
+		u32_t speed_abs;
+
+		k_sem_take(&speed_sem, K_FOREVER);
+
+		while (speed_act != speed)
+		{
+			speed_abs = speed_act < 0 ? -speed_act : speed_act;
+			pulse = (pwm_period * (speed_abs * (PULSE_UPPER_BOUND - PULSE_LOWER_BOUND) + PULSE_LOWER_BOUND * 100)) / (100 * 100);
+			pwm_pin_set_cycles(pwm_dev, PWM_CHANNEL_RAIL1, pwm_period, pulse);
+			speed_act = (speed_act > speed) ? speed_act - 1 : speed_act + 1;
+			if(!speed_act || speed_act == 1 || speed_act == -1)
+			{
+				change_dir(speed);
+			}
+			k_sleep(20);
+		}
+	}
 }
