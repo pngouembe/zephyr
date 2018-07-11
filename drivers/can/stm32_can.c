@@ -197,8 +197,8 @@ int can_stm32_runtime_configure(struct device *dev, enum can_mode mode,
 	u32_t prescaler;
 	u32_t hal_mode;
 	int hal_ret;
-	u32_t bs1;
-	u32_t bs2;
+	u32_t ts1;
+	u32_t ts2;
 	u32_t swj;
 
 	clock = device_get_binding(STM32_CLOCK_CONTROL_NAME);
@@ -224,17 +224,17 @@ int can_stm32_runtime_configure(struct device *dev, enum can_mode mode,
 			    " * bus_speed); "
 			    "prescaler = %d / ((%d + %d + 1) * %d)",
 			    clock_rate,
-			    cfg->prop_bs1,
-			    cfg->bs2,
+			    cfg->prop_ts1,
+			    cfg->ts2,
 			    bitrate);
 	}
 
 	__ASSERT(cfg->swj <= 0x03,      "SWJ maximum is 3");
-	__ASSERT(cfg->prop_bs1 <= 0x0F, "PROP_BS1 maximum is 15");
-	__ASSERT(cfg->bs2 <= 0x07,      "BS2 maximum is 7");
+	__ASSERT(cfg->prop_ts1 <= 0x0F, "PROP_TS1 maximum is 15");
+	__ASSERT(cfg->ts2 <= 0x07,      "BS2 maximum is 7");
 
-	bs1 = ((cfg->prop_bs1 & 0x0F) - 1) << CAN_BTR_TS1_Pos;
-	bs2 = ((cfg->bs2      & 0x07) - 1) << CAN_BTR_TS2_Pos;
+	ts1 = ((cfg->prop_ts1 & 0x0F) - 1) << CAN_BTR_TS1_Pos;
+	ts2 = ((cfg->ts2      & 0x07) - 1) << CAN_BTR_TS2_Pos;
 	swj = ((cfg->swj      & 0x07) - 1) << CAN_BTR_SJW_Pos;
 
 	hal_mode =  mode == CAN_NORMAL_MODE   ? CAN_MODE_NORMAL   :
@@ -242,16 +242,16 @@ int can_stm32_runtime_configure(struct device *dev, enum can_mode mode,
 		    mode == CAN_SILENT_MODE   ? CAN_MODE_SILENT   :
 						CAN_MODE_SILENT_LOOPBACK;
 
-	hcan.Init.TTCM = DISABLE;
-	hcan.Init.ABOM = DISABLE;
-	hcan.Init.AWUM = DISABLE;
-	hcan.Init.NART = DISABLE;
-	hcan.Init.RFLM = DISABLE;
-	hcan.Init.TXFP = DISABLE;
+	hcan.Init.TimeTriggeredMode = DISABLE;
+	hcan.Init.AutoBusOff = DISABLE;
+	hcan.Init.AutoWakeUp = DISABLE;
+	hcan.Init.AutoRetransmission = DISABLE;
+	hcan.Init.ReceiveFifoLocked = DISABLE;
+	hcan.Init.TransmitFifoPriority = DISABLE;
 	hcan.Init.Mode = hal_mode;
-	hcan.Init.SJW  = swj;
-	hcan.Init.BS1  = bs1;
-	hcan.Init.BS2  = bs2;
+	hcan.Init.SyncJumpWidth  = swj;
+	hcan.Init.TimeSeg1  = ts1;
+	hcan.Init.TimeSeg2  = ts2;
 	hcan.Init.Prescaler = prescaler;
 
 	hcan.State = HAL_CAN_STATE_RESET;
@@ -303,7 +303,6 @@ static int can_stm32_init(struct device *dev)
 	}
 
 	cfg->config_irq(can);
-	can->IER |= CAN_IT_TME;
 	SYS_LOG_INF("Init of %s done", dev->config->name);
 	return 0;
 }
@@ -352,15 +351,15 @@ int can_stm32_send(struct device *dev, struct can_msg *msg, s32_t timeout,
 
 	if (transmit_status_register & CAN_TSR_TME0) {
 		SYS_LOG_DBG("Using mailbox 0");
-		mailbox = &can->sTxMailBox[CAN_TXMAILBOX_0];
+		mailbox = &can->sTxMailBox[0];
 		mb = &(data->mb0);
 	} else if (transmit_status_register & CAN_TSR_TME1) {
 		SYS_LOG_DBG("Using mailbox 1");
-		mailbox = &can->sTxMailBox[CAN_TXMAILBOX_1];
+		mailbox = &can->sTxMailBox[1];
 		mb = &data->mb1;
 	} else if (transmit_status_register & CAN_TSR_TME2) {
 		SYS_LOG_DBG("Using mailbox 2");
-		mailbox = &can->sTxMailBox[CAN_TXMAILBOX_2];
+		mailbox = &can->sTxMailBox[2];
 		mb = &data->mb2;
 	}
 
@@ -846,8 +845,8 @@ static const struct can_stm32_config can_stm32_cfg_1 = {
 	.can = (CAN_TypeDef *)CONFIG_CAN_1_BASE_ADDRESS,
 	.bus_speed = CONFIG_CAN_1_BUS_SPEED,
 	.swj = CONFIG_CAN_1_SJW,
-	.prop_bs1 = CONFIG_CAN_1_PROP_SEG_PHASE_SEG1,
-	.bs2 = CONFIG_CAN_1_PHASE_SEG2,
+	.prop_ts1 = CONFIG_CAN_1_PROP_SEG_PHASE_SEG1,
+	.ts2 = CONFIG_CAN_1_PHASE_SEG2,
 	.pclken = {
 		.enr = CONFIG_CAN_1_CLOCK_BITS,
 		.bus = CONFIG_CAN_1_CLOCK_BUS,
@@ -882,7 +881,8 @@ static void config_can_1_irq(CAN_TypeDef *can)
 		    can_stm32_tx_isr, DEVICE_GET(can_stm32_1), 0);
 	irq_enable(CONFIG_CAN_1_IRQ_SCE);
 #endif
-	can->IER |= CAN_IT_TME | CAN_IT_ERR | CAN_IT_FMP0 | CAN_IT_FMP1;
+	can->IER |= CAN_IER_TMEIE | CAN_IER_ERRIE | CAN_IER_FMPIE0 |
+		    CAN_IER_FMPIE1 | CAN_IER_BOFIE;
 }
 
 #endif /*CONFIG_CAN_1*/
