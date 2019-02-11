@@ -713,6 +713,10 @@ static inline int can_stm32_set_filter(const struct zcan_filter *filter,
 						start_index,
 						shift_width);
 
+			res |= can_stm32_shift_arr(device_data->cb_arg,
+						   start_index,
+						   shift_width);
+
 			if (filter_index_new >= CONFIG_CAN_MAX_FILTER || res) {
 				LOG_INF("No space for a new filter!");
 				filter_nr = CAN_NO_FREE_FILTER;
@@ -781,6 +785,7 @@ int can_stm32_attach_msgq(struct device *dev, struct k_msgq *msgq,
 }
 
 int can_stm32_attach_isr(struct device *dev, can_rx_callback_t isr,
+			 void *cb_arg,
 			 const struct zcan_filter *filter)
 {
 	struct can_stm32_data *data = DEV_DATA(dev);
