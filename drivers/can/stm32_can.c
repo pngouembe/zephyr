@@ -30,7 +30,7 @@ static const u8_t reg_demand[] = {2, 1, 4, 2};
 static void can_stm32_signal_tx_complete(struct can_mailbox *mb)
 {
 	if (mb->tx_callback) {
-		mb->tx_callback(mb->error_flags);
+		mb->tx_callback(mb->error_flags, mb->callback_arg);
 	} else  {
 		k_sem_give(&mb->tx_int_sem);
 	}
@@ -325,7 +325,7 @@ static int can_stm32_init(struct device *dev)
 }
 
 int can_stm32_send(struct device *dev, const struct zcan_frame *msg,
-		   s32_t timeout, can_tx_callback_t callback)
+		   s32_t timeout, can_tx_callback_t callback, void *callback_arg)
 {
 	const struct can_stm32_config *cfg = DEV_CFG(dev);
 	struct can_stm32_data *data = DEV_DATA(dev);
@@ -381,6 +381,7 @@ int can_stm32_send(struct device *dev, const struct zcan_frame *msg,
 	}
 
 	mb->tx_callback = callback;
+	mb->callback_arg = callback_arg;
 	k_sem_reset(&mb->tx_int_sem);
 
 	/* mailbix identifier register setup */
