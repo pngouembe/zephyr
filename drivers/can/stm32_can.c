@@ -15,9 +15,8 @@
 #include <can.h>
 #include "stm32_can.h"
 
-#define LOG_LEVEL CONFIG_CAN_LOG_LEVEL
 #include <logging/log.h>
-LOG_MODULE_REGISTER(stm32_can);
+LOG_MODULE_DECLARE(can_driver, CONFIG_CAN_LOG_LEVEL);
 
 /*
  * Translation tables
@@ -59,6 +58,7 @@ void can_stm32_rx_isr_handler(CAN_TypeDef *can, struct can_stm32_data *data)
 	CAN_FIFOMailBox_TypeDef *mbox;
 	int filter_match_index;
 	struct zcan_frame msg;
+	can_rx_callback_t callback;
 
 	while (can->RF0R & CAN_RF0R_FMP0) {
 		mbox = &can->sFIFOMailBox[0];
@@ -72,17 +72,10 @@ void can_stm32_rx_isr_handler(CAN_TypeDef *can, struct can_stm32_data *data)
 		LOG_DBG("Message on filter index %d", filter_match_index);
 		can_stm32_get_msg_fifo(mbox, &msg);
 
-		if (data->rx_response[filter_match_index]) {
-			if (data->response_type & (1ULL << filter_match_index)) {
-				struct k_msgq *msg_q =
-					data->rx_response[filter_match_index];
+		callback = data->rx_cb[filter_match_index];
 
-				k_msgq_put(msg_q, &msg, K_NO_WAIT);
-			} else {
-				can_rx_callback_t callback =
-					data->rx_response[filter_match_index];
-				callback(&msg);
-			}
+		if (callback) {
+			callback(&msg, data->cb_arg[filter_match_index]);
 		}
 
 		/* Release message */
@@ -300,9 +293,10 @@ static int can_stm32_init(struct device *dev)
 	data->mb2.tx_callback = NULL;
 
 	data->filter_usage = (1ULL << CAN_MAX_NUMBER_OF_FILTERS) - 1ULL;
-	(void)memset(data->rx_response, 0,
+	(void)memset(data->rx_cb, 0,
+		     sizeof(data->rx_cb) * CONFIG_CAN_MAX_FILTER);
+	(void)memset(data->cb_arg, 0,
 		     sizeof(void *) * CONFIG_CAN_MAX_FILTER);
-	data->response_type = 0U;
 
 	clock = device_get_binding(STM32_CLOCK_CONTROL_NAME);
 	__ASSERT_NO_MSG(clock);
@@ -468,22 +462,6 @@ static int can_stm32_shift_arr(void **arr, int start, int count)
 	}
 
 	return 0;
-}
-
-static inline void can_stm32_shift_bits(u64_t *bits, int start, int count)
-{
-	u64_t mask_right;
-	u64_t mask_left;
-
-	if (count > 0) {
-		mask_right = ~(UINT64_MAX << start);
-		*bits = (*bits & mask_right) | ((*bits & ~mask_right) << count);
-	} else if (count < 0) {
-		count = -count;
-		mask_left = UINT64_MAX << start;
-		mask_right = ~(UINT64_MAX << (start - count));
-		*bits = (*bits & mask_right) | ((*bits & mask_left) >> count);
-	}
 }
 
 enum can_filter_type can_stm32_get_filter_type(int bank_nr, u32_t mode_reg,
@@ -710,7 +688,7 @@ static inline int can_stm32_set_filter(const struct zcan_filter *filter,
 		start_index = filter_index_new + filter_in_bank[bank_mode];
 
 		if (shift_width && start_index <= CAN_MAX_NUMBER_OF_FILTERS) {
-			res = can_stm32_shift_arr(device_data->rx_response,
+			res = can_stm32_shift_arr((void **)device_data->rx_cb,
 						start_index,
 						shift_width);
 
@@ -723,10 +701,6 @@ static inline int can_stm32_set_filter(const struct zcan_filter *filter,
 				filter_nr = CAN_NO_FREE_FILTER;
 				goto done;
 			}
-
-			can_stm32_shift_bits(&device_data->response_type,
-					start_index,
-					shift_width);
 		}
 
 		can->FM1R = mode_reg;
@@ -751,37 +725,22 @@ done:
 	return filter_nr;
 }
 
-
-static inline int can_stm32_attach(struct device *dev, void *response_ptr,
-				   const struct zcan_filter *filter,
-				   int *filter_index)
+static inline int can_stm32_attach(struct device *dev, can_rx_callback_t cb,
+				   void *cb_arg,
+				   const struct zcan_filter *filter)
 {
 	const struct can_stm32_config *cfg = DEV_CFG(dev);
 	struct can_stm32_data *data = DEV_DATA(dev);
 	CAN_TypeDef *can = cfg->can;
-	int filter_index_tmp = 0;
+	int filter_index = 0;
 	int filter_nr;
 
-	filter_nr = can_stm32_set_filter(filter, data, can, &filter_index_tmp);
+	filter_nr = can_stm32_set_filter(filter, data, can, &filter_index);
 	if (filter_nr != CAN_NO_FREE_FILTER) {
-		data->rx_response[filter_index_tmp] = response_ptr;
+		data->rx_cb[filter_index] = cb;
+		data->cb_arg[filter_index] = cb_arg;
 	}
 
-	*filter_index = filter_index_tmp;
-	return filter_nr;
-}
-
-int can_stm32_attach_msgq(struct device *dev, struct k_msgq *msgq,
-			  const struct zcan_filter *filter)
-{
-	int filter_nr;
-	int filter_index;
-	struct can_stm32_data *data = DEV_DATA(dev);
-
-	k_mutex_lock(&data->set_filter_mutex, K_FOREVER);
-	filter_nr = can_stm32_attach(dev, msgq, filter, &filter_index);
-	data->response_type |= (1ULL << filter_index);
-	k_mutex_unlock(&data->set_filter_mutex);
 	return filter_nr;
 }
 
@@ -791,11 +750,9 @@ int can_stm32_attach_isr(struct device *dev, can_rx_callback_t isr,
 {
 	struct can_stm32_data *data = DEV_DATA(dev);
 	int filter_nr;
-	int filter_index;
 
 	k_mutex_lock(&data->set_filter_mutex, K_FOREVER);
-	filter_nr = can_stm32_attach(dev, isr, filter, &filter_index);
-	data->response_type &= ~(1ULL << filter_index);
+	filter_nr = can_stm32_attach(dev, isr, cb_arg, filter);
 	k_mutex_unlock(&data->set_filter_mutex);
 	return filter_nr;
 }
@@ -844,8 +801,8 @@ void can_stm32_detach(struct device *dev, int filter_nr)
 	}
 
 	can->FMR &= ~(CAN_FMR_FINIT);
-	data->rx_response[filter_index] = NULL;
-	data->response_type &= ~(1ULL << filter_index);
+	data->rx_cb[filter_index] = NULL;
+	data->cb_arg[filter_index] = NULL;
 
 	k_mutex_unlock(&data->set_filter_mutex);
 }
@@ -853,7 +810,6 @@ void can_stm32_detach(struct device *dev, int filter_nr)
 static const struct can_driver_api can_api_funcs = {
 	.configure = can_stm32_runtime_configure,
 	.send = can_stm32_send,
-	.attach_msgq = can_stm32_attach_msgq,
 	.attach_isr = can_stm32_attach_isr,
 	.detach = can_stm32_detach
 };
