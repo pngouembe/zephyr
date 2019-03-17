@@ -47,6 +47,25 @@ Z_SYSCALL_HANDLER(can_attach_msgq, dev, msgq, filter) {
 				     (const struct zcan_filter *) filter);
 }
 
+Z_SYSCALL_HANDLER(can_attach_workq, dev, work_q, work, callback, callback_arg,
+		  filter) {
+
+	Z_OOPS(Z_SYSCALL_OBJ(dev, K_OBJ_DRIVER_CAN));
+
+	Z_OOPS(Z_SYSCALL_MEMORY_READ((struct zcan_filter *)filter,
+				     sizeof(struct zcan_filter)));
+	Z_OOPS(Z_SYSCALL_MEMORY_READ((void *)callback_arg, sizeof(void *)));
+
+	Z_OOPS(Z_SYSCALL_OBJ(work_q, K_OBJ_MSGQ));
+
+	return z_impl_can_attach_workq((struct device *)dev,
+				     (struct k_work_q *)work_q,
+				     (struct zcan_work *)work,
+				     (can_rx_callback_t)callback,
+				     (void *)callback_arg,
+				     (const struct zcan_filter *) filter);
+}
+
 Z_SYSCALL_HANDLER(can_detach, dev, filter_id) {
 
 	Z_OOPS(Z_SYSCALL_DRIVER_CAN(dev, detach));
