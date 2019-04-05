@@ -3,4 +3,5 @@
 zephyr_sources_ifdef(CONFIG_CAN          can_common.c)
 zephyr_sources_ifdef(CONFIG_CAN_STM32    stm32_can.c)
 zephyr_sources_ifdef(CONFIG_CAN_LOOPBACK can_loopback.c)
+zephyr_sources_ifdef(CONFIG_CAN_NET      can_net.c)
 zephyr_sources_ifdef(CONFIG_USERSPACE    can_handlers.c)

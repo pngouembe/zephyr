@@ -41,7 +41,7 @@ extern "C" {
  */
 
 struct net_context;
-
+struct can_net_isotp_tx_ctx;
 
 /* buffer cursor used in net_pkt */
 struct net_pkt_cursor {
@@ -191,6 +191,12 @@ struct net_pkt {
 #if defined(CONFIG_IEEE802154)
 	u8_t ieee802154_rssi; /* Received Signal Strength Indication */
 	u8_t ieee802154_lqi;  /* Link Quality Indicator */
+#endif
+#if defined(CONFIG_NET_L2_CANBUS)
+	union {
+		struct can_net_isotp_tx_ctx *can_tx_ctx;
+		struct can_net_isotp_rx_ctx *can_rx_ctx;
+	};
 #endif
 	/* @endcond */
 };

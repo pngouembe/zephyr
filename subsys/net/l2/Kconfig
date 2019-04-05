@@ -75,6 +75,8 @@ source "subsys/net/l2/ieee802154/Kconfig"
 
 source "subsys/net/l2/openthread/Kconfig"
 
+source "subsys/net/l2/canbus/Kconfig"
+
 config NET_L2_WIFI_MGMT
 	bool "Enable WiFi Management support"
 	select NET_MGMT
@@ -97,10 +99,5 @@ config NET_L2_WIFI_SHELL
 	help
 	  This can be used for controlling WiFi through the console via
 	  exposing a shell module named "wifi".
-
-config NET_L2_CANBUS
-	bool "Enable CANBUS l2 layer"
-	help
-	  Add a CANBUS L2 layer driver.
 
 endmenu
