@@ -44,5 +44,6 @@ config CAN_1
 
 source "drivers/can/Kconfig.stm32"
 source "drivers/can/Kconfig.loopback"
+source "drivers/can/Kconfig.net"
 
 endif # CAN

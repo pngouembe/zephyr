@@ -1,0 +1,40 @@
+
+config NET_L2_CANBUS
+	bool "Enable CANBUS L2 layer [Experimental]"
+	depends on CAN_NET
+	select NET_6LO
+	help
+	  Add a CANBUS L2 layer driver. This is the layer for IPv6 over CAN
+	  (6loCAN). It uses IPHC to compress the IP header and ISO-TP for
+	  flow control and reassembling.
+
+if NET_L2_CANBUS
+
+config NET_L2_CANBUS_USE_FIXED_ADDR
+	bool "Use fixed L2 address"
+	help
+	  Use a fixed L2 address for 6LoCAN instead of a random chosen one
+
+config NET_L2_CANBUS_FIXED_ADDR
+	int "L2 address"
+	depends on NET_L2_CANBUS_USE_FIXED_ADDR
+	range 256 16367
+
+config NET_L2_CANBUS_DAD_RETRIES
+	int "Number of DAD retries"
+	default 5
+	help
+	  Number of retries for Duplicate address detection.
+	  Greater than one only makes sense for random link layer addresses.
+
+module = NET_L2_CANBUS
+module-dep = NET_LOG
+module-str = Log level for CANbus L2 layer
+module-help = Enables CANbus L2 to output debug messages.
+source "subsys/net/Kconfig.template.log_config.net"
+endif #NET_L2_CANBUS
+
+config NET_L2_CANBUS_RAW
+	bool "Enable CANBUS RAW l2 layer"
+	help
+	  Add a CANBUS L2 layer driver. This is the layer for SOCKET CAN.
