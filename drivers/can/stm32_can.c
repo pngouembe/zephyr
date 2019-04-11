@@ -293,10 +293,8 @@ static int can_stm32_init(struct device *dev)
 	data->mb2.tx_callback = NULL;
 
 	data->filter_usage = (1ULL << CAN_MAX_NUMBER_OF_FILTERS) - 1ULL;
-	(void)memset(data->rx_cb, 0,
-		     sizeof(data->rx_cb) * CONFIG_CAN_MAX_FILTER);
-	(void)memset(data->cb_arg, 0,
-		     sizeof(void *) * CONFIG_CAN_MAX_FILTER);
+	(void)memset(data->rx_cb, 0, sizeof(data->rx_cb));
+	(void)memset(data->cb_arg, 0, sizeof(data->cb_arg));
 
 	clock = device_get_binding(STM32_CLOCK_CONTROL_NAME);
 	__ASSERT_NO_MSG(clock);
