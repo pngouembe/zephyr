@@ -47,6 +47,7 @@
 		led0 = &green_led;
 		pwm-led0 = &green_pwm_led;
 		sw0 = &user_button;
+		can-primary = &can1;
 	};
 };
 
@@ -108,5 +109,19 @@
 };
 
 &iwdg {
+	status = "okay";
+};
+
+&can1 {
+	bus-speed = <125000>;
+	sjw = <1>;
+	prop-seg = <0>;
+	phase-seg1 = <6>;
+	phase-seg2 = <5>;
+	bus-speed-data = <1000000>;
+	sjw-data = <1>;
+	prop-seg-data = <0>;
+	phase-seg1-data = <6>;
+	phase-seg2-data = <5>;
 	status = "okay";
 };

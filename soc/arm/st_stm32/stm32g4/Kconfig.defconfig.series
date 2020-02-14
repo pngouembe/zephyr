@@ -35,4 +35,9 @@ config ENTROPY_STM32_RNG
 	depends on ENTROPY_GENERATOR
 
 endif # GPIO_STM32
+
+config CAN_STM32FD
+	default y
+	depends on CAN
+
 endif # SOC_SERIES_STM32G4X

@@ -5,7 +5,7 @@
 
 config CAN_STM32
 	bool "STM32 CAN Driver"
-	depends on SOC_FAMILY_STM32
+	depends on (SOC_FAMILY_STM32 && !SOC_SERIES_STM32G4X)
 	help
 	  Enable STM32 CAN Driver.
 	  Tested on stm32F0, stm32L4 and stm32F7 series.

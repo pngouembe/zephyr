@@ -72,7 +72,7 @@ config COUNTER_RTC_STM32
 
 config CAN_STM32
 	default y
-	depends on CAN
+	depends on (CAN && !SOC_SERIES_STM32G4X)
 
 config ADC_STM32
 	default y
