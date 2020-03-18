@@ -6,10 +6,10 @@
 config CAN_STM32FD
 	bool "STM32 CAN Driver"
 	select CAN_FD_MODE
-	depends on SOC_SERIES_STM32G4X
+	depends on SOC_SERIES_STM32G4X || SOC_SERIES_STM32MP1X
 	help
 	  Enable STM32 CAN-FD Driver.
-	  This diver supports the FDCAN IP from STM32G4 SoCs
+	  This diver supports the FDCAN IP from STM32G4 and STM32MP1 SoCs
 
 if CAN_STM32FD
 

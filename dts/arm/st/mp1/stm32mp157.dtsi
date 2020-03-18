@@ -207,6 +207,18 @@
 			label = "SPI_5";
 		};
 
+		can1: can@4400e000 {
+			compatible = "st,stm32-can-fd";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x4400e000 0x400>;
+			interrupts = <19 0>, <21 0>;
+			interrupt-names = "LINE_1", "LINE_0";
+			clocks = <&rcc STM32_CLOCK_BUS_APB2 0x01000000>;
+			status = "disabled";
+			label = "CAN_1";
+		};
+
 		usart2: serial@4000e000 {
 			compatible = "st,stm32-usart", "st,stm32-uart";
 			reg = <0x4000e000 0x400>;
